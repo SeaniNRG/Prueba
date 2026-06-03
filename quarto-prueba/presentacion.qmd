@@ -10,3 +10,9 @@ summary(dune)
 ```
 Limpieza de Dato
 Una vez importados los datos, es importante realizar una limpieza para asegurarse de que estén en
+
+el formato correcto y no contengan valores faltantes o errores. En este caso, se verificará si hay valores NA y se eliminarán si es necesario.
+```{r}
+sum(is.na(dune))
+dune <- na.omit(dune)
+```
