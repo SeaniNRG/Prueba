@@ -1,0 +1,12 @@
+Presentación
+===================
+En esta sección se presenta el proyecto de análisis de datos utilizando R y Quarto. El objetivo es demostrar cómo se pueden utilizar estas herramientas para realizar un análisis completo de un conjunto de datos, desde la importación y limpieza hasta la visualización y modelado.
+Importación de Datos
+Para comenzar, se importarán los datos desde un archivo CSV utilizando la función `read.csv()`. Asegúrate de tener el archivo en el mismo directorio que tu proyecto o proporciona la ruta correcta.
+```{r}
+library(vegan)
+data(dune)
+summary(dune)
+```
+Limpieza de Dato
+Una vez importados los datos, es importante realizar una limpieza para asegurarse de que estén en
