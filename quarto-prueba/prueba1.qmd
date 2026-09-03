@@ -1,7 +1,7 @@
 ---
 title: "Prueba"
 format: 
-    html: default
+    html: 
         mainfont: "Gill Sans"
         toc: true
         toc-title: "Index"
@@ -13,23 +13,30 @@ editor: visual
 jupyter: python3
 ---
 
-# Introduction
+# Introducción
 
-This is a simple introduction to the document.
-
+bkbjkjkb
 
 ```{python}
+#| echo: false
+#| warning: false
+#| message: false
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+from scipy.stats import norm
 ```
 
+# [Valuación con arbol binomial](#Valuacion%20arbol%20binomial)
 
-# [Valuación de arbol binomial](#Valuacion arbol binomial)
-```{python echo=FALSE, warning=FALSE, message=FALSE}
+```{python}
+#| echo: false
+#| warning: false
+#| message: false
 
 def valuar_arbol_binomial_call(S0=30.0, K=32.0, sigma=0.3, r=0.06, T=2 / 12,N=2, mostrar_grafico=True):
     """Funcion para valuar un arbol multiperiodo de manera inductiva hacia atrás, los parametros por default son los del ejemplo desarrollado en clase"""
@@ -122,16 +129,50 @@ def valuar_arbol_binomial_call(S0=30.0, K=32.0, sigma=0.3, r=0.06, T=2 / 12,N=2,
     return resultado
 ```
 
-# [Ejemplo valuación de arbol binomial](#Ejemplo valuacion arbol binomial)
+# [Ejemplo valuación con modelo binomial](#Ejemplo%20valuacion%20arbol%20binomial)
 
+```{python}
+#| echo: false
+#| warning: false
+#| message: false
 
-```{python echo=FALSE, warning=FALSE, message=FALSE}
 arbol = valuar_arbol_binomial_call(N=2)
 
 print(f"Precio del derivado (V_0): ${arbol['precio']:.4f}")
 print(f"Delta inicial:            {arbol['delta']:.4f}")
 print(f"u = {arbol['u']:.4f}   d = {arbol['d']:.4f}   p = {arbol['p']:.4f}")
 plt.show()
-
 ```
 
+# Valuación con fórmula de Black-Scholes
+
+``` python
+#| echo: false
+#| warning: false
+#| message: false
+
+
+def bs_precio_call(S=30, K=32, r=0.06, sigma=0.3, T=2/12):
+    """Precio de Black-Scholes para una call"""
+    d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    return S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+
+
+def bs_delta_call(S=30, K=32, r=0.06, sigma=0.3, T=2/12):
+    """Delta derivada de Black-Scholes para una call"""
+    d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+    return norm.cdf(d1)
+```
+
+``` python
+{python}
+#| echo: false
+#| warning: false
+#| message: false
+
+precio_bs=bs_precio_call(S=30, K=32, r=0.06, sigma=0.3, T=2 / 12)
+delta_bs = bs_delta_call(S=30, K=32, r=0.06, sigma=0.3, T=2 / 12)
+print(f"Precio de la opción con BS V_0: ${precio_bs:.4f}")
+print(f"Delta:                           {delta_bs:.4f}")
+```
