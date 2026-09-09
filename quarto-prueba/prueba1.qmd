@@ -8,7 +8,7 @@ format:
         toc-depth: 3
         smooth-scroll: true
         toc-location: left
-        theme: "Cyborg"
+        theme: default
 editor: visual
 jupyter: python3
 ---
@@ -146,11 +146,10 @@ plt.show()
 
 # Valuación con fórmula de Black-Scholes
 
-``` python
+```{python}
 #| echo: false
 #| warning: false
 #| message: false
-
 
 def bs_precio_call(S=30, K=32, r=0.06, sigma=0.3, T=2/12):
     """Precio de Black-Scholes para una call"""
@@ -165,8 +164,8 @@ def bs_delta_call(S=30, K=32, r=0.06, sigma=0.3, T=2/12):
     return norm.cdf(d1)
 ```
 
-``` python
-{python}
+```{python}
+
 #| echo: false
 #| warning: false
 #| message: false
@@ -175,4 +174,150 @@ precio_bs=bs_precio_call(S=30, K=32, r=0.06, sigma=0.3, T=2 / 12)
 delta_bs = bs_delta_call(S=30, K=32, r=0.06, sigma=0.3, T=2 / 12)
 print(f"Precio de la opción con BS V_0: ${precio_bs:.4f}")
 print(f"Delta:                           {delta_bs:.4f}")
+```
+
+```{python}
+
+#| echo: false
+#| warning: false
+#| message: false
+
+N_arbol_superficie = 2  # periodos del arbol en cada punto de la malla
+
+S_grid_sup = np.linspace(15, 45, 100) # malla precio del limon en un rago de 15 a 45$/kg
+T_meses_grid = np.linspace(0.01, 12, 100) # malla vencimiento (meses) (para el grafico)
+T_grid_sup = T_meses_grid / 12 # malla vencimiento (años) (para las cuentas)
+
+def valor_bull_binomial(S, T, N=N_arbol_superficie):
+    larga = valuar_arbol_binomial_call(S0=S, K=K1, T=T, N=N, mostrar_grafico=False)["precio"]
+    corta = valuar_arbol_binomial_call(S0=S, K=K2,T=T, N=N, mostrar_grafico=False)["precio"]
+    return larga - corta
+
+# malla de precio, vencimiento
+S_mesh, T_mesh_meses = np.meshgrid(S_grid_sup, T_meses_grid) #Malla en la region para el grafico
+_, T_mesh_anios = np.meshgrid(S_grid_sup, T_grid_sup) # malla en la región S-T para las cuentas
+
+# Superficie para call
+V_binomial = np.zeros_like(S_mesh)
+for i, T_val in enumerate(T_grid_sup):
+    for j, S_val in enumerate(S_grid_sup):
+        V_binomial[i, j] = valuar_arbol_binomial_call(S0=S_val, T=T_val, mostrar_grafico=False)['precio']
+
+# superficie valuado conBlack-Scholes
+V_bs = bs_precio_call(S=S_mesh, K=32, T=T_mesh_anios)
+
+vmax_comun = max(V_binomial.max(), V_bs.max())
+
+```
+
+```{python}
+
+#| echo: false
+#| warning: false
+#| message: false
+
+fig = make_subplots(rows=1, cols=2,
+    specs=[[{"type": "scene"}, {"type": "scene"}]],
+    subplot_titles=(f"Arbol binomial (N={N_arbol_superficie})", "Black-Scholes"),)
+
+fig.add_trace(go.Surface(
+        x=S_grid_sup, y=T_meses_grid, z=V_binomial,
+        colorscale="Blues", cmin=0, cmax=vmax_comun,
+        showscale=False,
+        hovertemplate=(
+            "S = %{x:.2f} $/kg<br>"
+            "Vencimiento = %{y:.2f} meses<br>"
+            "Valor (arbol) = %{z:.3f} $/kg<extra></extra>"),),row=1, col=1,)
+
+fig.add_trace(go.Surface(
+        x=S_grid_sup, y=T_meses_grid, z=V_bs,
+        colorscale="Oranges", cmin=0, cmax=vmax_comun,
+        showscale=False,
+        hovertemplate=(
+            "S = %{x:.2f} $/kg<br>"
+            "Vencimiento = %{y:.2f} meses<br>"
+            "Valor (BS) = %{z:.3f} $/kg<extra></extra>"),),row=1, col=2,)
+
+S0 = 30.0
+indice_malla_S = np.argmin(np.abs(S_grid_sup - S0))
+
+fig.add_trace(go.Scatter3d(
+        x=np.full_like(T_meses_grid, S0), y=T_meses_grid, z=V_binomial[:, indice_malla_S],
+        mode="lines", line=dict(color="black", width=10, dash="solid"),
+        name="Precio S=30", showlegend=True,
+        hovertemplate="S = 30 $/kg<br>Vencimiento = %{y:.2f} meses<br>Valor = %{z:.3f} $/kg<extra></extra>",
+    ), row=1, col=1)
+
+fig.add_trace(go.Scatter3d(
+        x=np.full_like(T_meses_grid, S0), y=T_meses_grid, z=V_bs[:, indice_malla_S],
+        mode="lines", line=dict(color="black", width=10, dash="solid"),
+        name="Precio S=30", showlegend=False,
+        hovertemplate="S = 30 $/kg<br>Vencimiento = %{y:.2f} meses<br>Valor = %{z:.3f} $/kg<extra></extra>",
+    ), row=1, col=2)
+
+camara = dict(eye=dict(x=1.5, y=-1.7, z=0.9))
+ejes_comunes = dict(
+    xaxis_title="S ($/kg)",
+    yaxis_title="Vencimiento (meses)",
+    zaxis=dict(title="Valor ($/kg)", range=[0, vmax_comun]),
+    camera=camara,
+    aspectratio=dict(x=1, y=1, z=0.8))
+fig.update_layout(
+    title=f"Call (K=32)",
+    scene=ejes_comunes,
+    scene2=ejes_comunes,
+    legend=dict(x=0.42, y=0.05),
+    width=1150, height=580,
+    margin=dict(l=0, r=0, t=90, b=0))
+
+fig.show()
+```
+
+```{python}
+#| echo: false
+#| warning: false
+#| message: false
+
+fig = go.Figure()
+
+fig.add_trace(go.Surface(
+        x=S_grid_sup, y=T_meses_grid, z=V_bs,
+        colorscale="Oranges", cmin=0, cmax=vmax_comun,
+        opacity=0.55, showscale=False,
+        name="Black-Scholes", showlegend=True,
+        hovertemplate=(
+            "S = %{x:.2f} $/kg<br>"
+            "Vencimiento = %{y:.2f} meses<br>"
+            "Valor (BS) = %{z:.3f} $/kg<extra></extra>"
+        ),
+    ))
+
+fig.add_trace(go.Surface(
+        x=S_grid_sup, y=T_meses_grid, z=V_binomial,
+        colorscale="Blues", cmin=0, cmax=vmax_comun,
+        opacity=0.55, showscale=False,
+        name="Arbol binomial", showlegend=True,
+        hovertemplate=(
+            "S = %{x:.2f} $/kg<br>"
+            "Vencimiento = %{y:.2f} meses<br>"
+            "Valor (arbol) = %{z:.3f} $/kg<extra></extra>"
+        ),
+    ))
+
+
+fig.update_layout(
+        title=f"Call (K32) <br> Arbol Binomial (N={N_arbol_superficie}) vs Black-Scholes",
+        scene=dict(
+            xaxis_title="S ($/kg)",
+            yaxis_title="Vencimiento (meses)",
+            zaxis=dict(title="Valor ($/kg)", range=[0, vmax_comun]),
+            camera=dict(eye=dict(x=1.5, y=-1.7, z=0.9)),
+            aspectratio=dict(x=1, y=1, z=0.8),
+        ),
+        legend=dict(x=0.02, y=0.95, bgcolor="rgba(255,255,255,0.6)"),
+        margin=dict(l=0, r=0, t=60, b=0),
+        width=900, height=560,
+    )
+
+fig.show()
 ```
